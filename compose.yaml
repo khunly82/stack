@@ -4,6 +4,7 @@ networks:
 volumes:
   pgdata:
   grafana-data:
+  smtp4dev-data:
 
 services:
   db:
@@ -50,6 +51,47 @@ services:
       - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     networks: [monitoring]
 
+  loki:
+    container_name: Loki
+    image: grafana/loki:latest
+    ports:
+      - 3100:3100
+    networks: [monitoring]
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yml"]
+    user: "0"
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo.yml:ro
+    networks: [monitoring]
+
+  alloy:
+    image: grafana/alloy:v1.7.1
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 12345:12345
+    networks: [monitoring]
+
+  api:
+    build: ./app
+    environment:
+      DATABASE_URL: postgresql+psycopg2://Khun:1234@db:5432/my_db
+      OTEL_SERVICE_NAME: api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4317
+      OTEL_EXPORTER_OTLP_INSECURE: "true"
+    ports:
+      - 8000:8000
+    networks: [monitoring]
+    depends_on: [db]
+
   grafana:
     container_name: grafana
     image: grafana/grafana:latest
@@ -61,3 +103,12 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+
+  smtp:
+    container_name: stmp4dev
+    image: rnwood/smtp4dev:latest
+    ports:
+      - 25:25
+      - 5000:80
+    volumes:
+      - smtp4dev-data:/smtp4dev
