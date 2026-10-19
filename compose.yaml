@@ -105,7 +105,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: admin
 
   smtp:
-    container_name: stmp4dev
+    container_name: stmp4dev2
     image: rnwood/smtp4dev:latest
     ports:
       - 25:25

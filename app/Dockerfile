@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.14
 
 WORKDIR App
 
@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-CMD ['python', 'server.py']
+CMD ["python", "server.py"]
