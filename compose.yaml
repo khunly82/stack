@@ -1,0 +1,63 @@
+networks:
+  monitoring:
+
+volumes:
+  pgdata:
+  grafana-data:
+
+services:
+  db:
+    container_name: monitoring_postgres
+    image: postgres:latest
+    networks: [monitoring]
+    environment:
+      POSTGRES_USER: Khun
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: my_db
+    command: ["postgres", "-c", "log_min_duration_statement=200"]
+    volumes: 
+      - pgdata:/var/lib/postgresql
+
+
+  db_exporter:
+    container_name: postgres-exporter
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    environment:
+      DATA_SOURCE_NAME: postgresql://Khun:1234@db:5432/my_db?sslmode=disable
+    depends_on: [db]
+    networks: [monitoring]
+    ports:
+      - 9187:9187
+
+  cadvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks: [monitoring]
+    ports:
+      - 8080:8080
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+    networks: [monitoring]
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    networks: [monitoring]
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
